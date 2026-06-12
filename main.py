@@ -12,7 +12,7 @@ TOKEN = '8924268839:AAG3AKBZfHYkXtXQEzNOpvBddqKgph9tVsc'
 # 🚨 緊急事態の通知先（あなたの友達のTelegram Chat IDなど）
 # ==========================================
 # テスト用として、まずはご自身のChat ID（または通知したい相手のID）を入れます
-EMERGENCY_CONTACT_ID = 0  # 後ほど数字に書き換えます
+EMERGENCY_CONTACT_ID =  8743551795  # 後ほど数字に書き換えます
 
 # ユーザーデータの保存用
 user_data = {}
@@ -68,7 +68,7 @@ async def check_survival(context: ContextTypes.DEFAULT_TYPE):
     now = datetime.now()
     for user_id, data in user_data.items():
         last_checkin = data.get("last_checkin")
-        if last_checkin and (now - last_checkin) > timedelta(hours=48):
+        if last_checkin and (now - last_checkin) > timedelta(seconds=10):
             lang = data.get("lang", "en")
             # 緊急連絡先（指定したID）にメッセージを飛ばす
             if EMERGENCY_CONTACT_ID != 0:
