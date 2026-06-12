@@ -70,7 +70,7 @@ async def check_survival(context: ContextTypes.DEFAULT_TYPE):
     for user_id, data in user_data.items():
         last_checkin = data.get("last_checkin")
         # 💡 テスト用に10秒（seconds=10）にしています。成功したら後で hours=48 に戻します。
-        if last_checkin and (now - last_checkin) > timedelta(seconds=10):
+        if last_checkin and (now - last_checkin) > timedelta(hours=48):
             lang = data.get("lang", "en")
             if EMERGENCY_CONTACT_ID != 0:
                 try:
