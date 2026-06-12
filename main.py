@@ -21,11 +21,12 @@ user_data = {}
 
 # 📊 統計データ用カウンター
 stats_data = {
-    "total_checkins": 0  # 総生存報告回数
+    "total_checkins": 0
 }
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
+# 💡 ここにスペイン語（es）とフランス語（fr）を追加しました！
 TEXTS = {
     'ja': {
         'welcome': "「生きてるかボット」へようこそ！\n48時間生存報告がない場合、登録された緊急連絡先へ通知されます。\n\n現在のステータス：生存確認完了🟢",
@@ -68,13 +69,28 @@ TEXTS = {
         'btn_alive': "生存報告（我還活著！）",
         'alive_confirm': "生存報告已確認！\n最後簽到時間: ",
         'emergency_msg': "🚨【緊急情況】用戶已連續48小時未進行生存報告！請即刻確認其安全。"
+    },
+    'es': {
+        'welcome': "¡Bienvenido al Bot '¿Estás Vivo?'!\nSi no hay reporte por 48 horas, se enviará una alerta a tu contacto de emergencia.\n\nEstado: Confirmado 🟢",
+        'btn_alive': "¡Estoy Vivo!",
+        'alive_confirm': "¡Reporte confirmado!\nÚltimo reporte: ",
+        'emergency_msg': "🚨 [EMERGENCIA] ¡El usuario no ha reportado su estado por 48 horas! Por favor, verifique."
+    },
+    'fr': {
+        'welcome': "Bienvenue sur le Bot 'Es-tu en vie ?' !\nSans rapport pendant 48 heures, une alerte sera envoyée à votre contact d'urgence.\n\nStatut: Signalé 🟢",
+        'btn_alive': "Je suis en vie !",
+        'alive_confirm': "Signalement confirmé !\nDernier signalement: ",
+        'emergency_msg': "🚨 [URGENCE] Aucune nouvelle de l'utilisateur depuis 48 heures ! Veuillez vérifier."
     }
 }
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # 💡 新しい国旗ボタン（スペイン・フランス）を綺麗に並べました
     keyboard = [
         [InlineKeyboardButton("日本語 🇯🇵", callback_data='lang_ja'),
          InlineKeyboardButton("English 🇬🇧", callback_data='lang_en')],
+        [InlineKeyboardButton("Español 🇪🇸", callback_data='lang_es'),
+         InlineKeyboardButton("Français 🇫🇷", callback_data='lang_fr')],
         [InlineKeyboardButton("Русский 🇷🇺", callback_data='lang_ru'),
          InlineKeyboardButton("Українська 🇺🇦", callback_data='lang_uk')],
         [InlineKeyboardButton("简体中文 🇨🇳", callback_data='lang_zh_cn'),
@@ -100,19 +116,14 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif action == 'checkin':
         lang = user_data.get(user_id, {}).get("lang", "en")
         user_data[user_id]["last_checkin"] = datetime.now()
-        
-        # 📊 ボタンが押されたので回数を1増やす
         stats_data["total_checkins"] += 1
-        
         keyboard = [[InlineKeyboardButton(TEXTS[lang]['btn_alive'], callback_data='checkin')]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         await query.edit_message_text(text=f"{TEXTS[lang]['alive_confirm']}{now_str}", reply_markup=reply_markup)
 
-# 📊 あなただけが見られる利用状況確認コマンド
 async def get_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    # 管理者（あなた）のIDと一致する場合のみデータを返す
     if user_id == EMERGENCY_CONTACT_ID:
         active_users = len(user_data)
         total_clicks = stats_data["total_checkins"]
@@ -122,9 +133,6 @@ async def get_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"👆 総生存報告ボタン押下回数: {total_clicks} 回"
         )
         await update.message.reply_text(message)
-    else:
-        # 管理者以外には何も返さない（またはエラーを返さないように無視する）
-        pass
 
 async def check_survival(context: ContextTypes.DEFAULT_TYPE):
     now = datetime.now()
@@ -156,13 +164,13 @@ def main():
 
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("stats", get_stats)) # 📊 隠しコマンドを追加
+    application.add_handler(CommandHandler("stats", get_stats))
     application.add_handler(CallbackQueryHandler(button_click))
     
     job_queue = application.job_queue
     job_queue.run_repeating(check_survival, interval=300, first=10)
     
-    print("管理者コマンド付きボットが起動しました...")
+    print("世界対応・最強版ボットが起動しました...")
     application.run_polling()
 
 if __name__ == '__main__':
