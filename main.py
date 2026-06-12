@@ -1,5 +1,8 @@
 import logging
+import os
 from datetime import datetime, timedelta
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import threading
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
@@ -9,10 +12,9 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 TOKEN = '8924268839:AAG3AKBZfHYkXtXQEzNOpvBddqKgph9tVsc'
 
 # ==========================================
-# 🚨 緊急事態の通知先（あなたの友達のTelegram Chat IDなど）
+# 🚨 緊急事態の通知先（あなたの数字の識別番号）
 # ==========================================
-# テスト用として、まずはご自身のChat ID（または通知したい相手のID）を入れます
-EMERGENCY_CONTACT_ID =  8743551795  # 後ほど数字に書き換えます
+EMERGENCY_CONTACT_ID = 8743551795  # あなたのChat ID（数字）に書き換えてください
 
 # ユーザーデータの保存用
 user_data = {}
@@ -63,14 +65,13 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
         now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         await query.edit_message_text(text=f"{TEXTS[lang]['alive_confirm']}{now_str}", reply_markup=reply_markup)
 
-# 💡 Renderが5分ごとにこの関数を自動実行し、48時間超過をチェックします
 async def check_survival(context: ContextTypes.DEFAULT_TYPE):
     now = datetime.now()
     for user_id, data in user_data.items():
         last_checkin = data.get("last_checkin")
+        # 💡 テスト用に10秒（seconds=10）にしています。成功したら後で hours=48 に戻します。
         if last_checkin and (now - last_checkin) > timedelta(seconds=10):
             lang = data.get("lang", "en")
-            # 緊急連絡先（指定したID）にメッセージを飛ばす
             if EMERGENCY_CONTACT_ID != 0:
                 try:
                     await context.bot.send_message(chat_id=EMERGENCY_CONTACT_ID, text=TEXTS[lang]['emergency_msg'])
@@ -78,17 +79,31 @@ async def check_survival(context: ContextTypes.DEFAULT_TYPE):
                 except Exception as e:
                     logging.error(f"Failed to send emergency message: {e}")
 
+# 🌐 RenderのWeb Serviceを騙すためのダミーサーバー
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+def run_health_check():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)
+    server.serve_forever()
+
 def main():
+    # ダミーサーバーを別スレッドで起動（Renderに「ちゃんと動いてるよ」とアピールする）
+    threading.Thread(target=run_health_check, daemon=True).start()
+
     application = Application.builder().token(TOKEN).build()
-    
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(button_click))
     
-    # 5分ごとに生存チェックを行うタイマーを設定
     job_queue = application.job_queue
-    job_queue.run_repeating(check_survival, interval=300, first=10)
+    job_queue.run_repeating(check_survival, interval=10, first=10)
     
-    print("通知機能付きボットが起動しました...")
+    print("Web Service対応版ボットが起動しました...")
     application.run_polling()
 
 if __name__ == '__main__':
